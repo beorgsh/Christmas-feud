@@ -1,8 +1,8 @@
 
 // Sound Assets
 const SOUNDS = {
-  // Classic Family Feud "Ding" (Correct Answer / Reveal)
-  ding: 'https://www.myinstants.com/media/sounds/family-feud-clang.mp3',
+  // Reliable "Ding" / Correct Answer (Mixkit source is stable and CORS-friendly)
+  ding: 'https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3',
   
   // Reliable Game Show Buzzer (Wrong Answer / Strike)
   buzz: 'https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3',
@@ -26,25 +26,43 @@ class AudioService {
     // Initialize SFX
     this.ding = new Audio(SOUNDS.ding);
     this.ding.volume = 0.8;
+    // Explicitly load to ensure readiness
+    this.ding.load();
 
     this.buzz = new Audio(SOUNDS.buzz);
     this.buzz.volume = 1.0; 
+    this.buzz.load();
   }
 
   playDing() {
     this.ding.currentTime = 0;
-    this.ding.play().catch(e => console.log("Audio play failed (Ding)", e));
+    const promise = this.ding.play();
+    
+    if (promise !== undefined) {
+      promise.catch(e => {
+        console.warn("Audio play failed (Ding). Check browser autoplay policy or network.", e);
+        // Attempt to reload if it failed
+        this.ding.load();
+      });
+    }
   }
 
   playBuzz() {
     this.buzz.currentTime = 0;
-    this.buzz.play().catch(e => console.log("Audio play failed (Buzz)", e));
+    const promise = this.buzz.play();
+    
+    if (promise !== undefined) {
+      promise.catch(e => console.warn("Audio play failed (Buzz)", e));
+    }
   }
 
   toggleMusic(shouldPlay: boolean) {
     this.isMusicPlaying = shouldPlay;
     if (shouldPlay) {
-      this.bgMusic.play().catch(e => console.log("Music play failed - browser might require interaction first", e));
+      const promise = this.bgMusic.play();
+      if (promise !== undefined) {
+         promise.catch(e => console.warn("Music play failed - browser might require interaction first", e));
+      }
     } else {
       this.bgMusic.pause();
     }

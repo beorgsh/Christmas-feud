@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { GamePhase, GameState } from './types';
-import Registration from './components/Registration.tsx';
-import AdminDashboard from './components/AdminDashboard.tsx';
-import GameView from './components/GameView.tsx';
-import { fetchGameContent } from './services/geminiService.ts';
-import { audioService } from './services/audioService.ts';
+import Registration from './components/Registration';
+import AdminDashboard from './components/AdminDashboard';
+import GameView from './components/GameView';
+import { fetchGameContent } from './services/geminiService';
+import { audioService } from './services/audioService';
 
 const App: React.FC = () => {
   // Internal Tab State

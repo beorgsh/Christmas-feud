@@ -10,8 +10,17 @@ import { audioService } from './services/audioService';
 const STORAGE_KEY = 'paskong-pinoy-feud-state';
 
 const App: React.FC = () => {
+  // Determine initial tab based on URL parameter
+  const getInitialTab = (): 'admin' | 'board' => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('role') === 'board' ? 'board' : 'admin';
+    }
+    return 'admin';
+  };
+
   // Internal Tab State
-  const [activeTab, setActiveTab] = useState<'admin' | 'board'>('admin');
+  const [activeTab, setActiveTab] = useState<'admin' | 'board'>(getInitialTab);
   const [isMusicOn, setIsMusicOn] = useState(false);
   const [showResumeOverlay, setShowResumeOverlay] = useState(false);
   const [isReplacingQuestion, setIsReplacingQuestion] = useState(false);
@@ -41,17 +50,41 @@ const App: React.FC = () => {
     };
   });
 
-  // Effect: Save state to LocalStorage on change
+  // Effect: Save state to LocalStorage on change (Sync to other tabs)
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const json = JSON.stringify(state);
+    // Only write if value is actually different to prevent write-loops
+    if (localStorage.getItem(STORAGE_KEY) !== json) {
+      localStorage.setItem(STORAGE_KEY, json);
+    }
   }, [state]);
+
+  // Effect: Listen for changes from other tabs (Sync from other tabs)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        try {
+          const newState = JSON.parse(e.newValue);
+          setState(newState);
+        } catch (error) {
+          console.error("Failed to sync state from storage", error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Effect: Check if we restored a live game
   useEffect(() => {
     if (state.phase === GamePhase.PLAYING || state.phase === GamePhase.GAME_OVER) {
-      setShowResumeOverlay(true);
+      // Only show resume overlay on Admin tab
+      if (activeTab === 'admin') {
+        setShowResumeOverlay(true);
+      }
     }
-  }, []);
+  }, [activeTab]);
 
   // --- HOST ACTIONS ---
   
@@ -196,7 +229,7 @@ const App: React.FC = () => {
 
   const resetGame = () => {
     localStorage.removeItem(STORAGE_KEY);
-    setState({
+    const initialState = {
       teams: {
         1: { id: 1, name: '', score: 0 },
         2: { id: 2, name: '', score: 0 }
@@ -207,7 +240,8 @@ const App: React.FC = () => {
       strikes: 0,
       showStrikeOverlay: false,
       phase: GamePhase.REGISTRATION
-    });
+    };
+    setState(initialState);
     setIsMusicOn(false);
     audioService.toggleMusic(false);
   };
@@ -215,33 +249,35 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       
-      {/* NAVIGATION TABS */}
-      <div className="bg-slate-900 border-b border-slate-700 p-2 flex items-center justify-center shrink-0">
-        <div className="flex gap-2">
-          <button
-            onClick={() => setActiveTab('admin')}
-            className={`px-6 py-2 rounded font-bold uppercase text-sm tracking-wider transition-colors flex items-center gap-2
-              ${activeTab === 'admin' 
-                ? 'bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.4)]' 
-                : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
-              }`}
-          >
-            <span>🎮</span>
-            Host Controls
-          </button>
-          <button
-            onClick={() => setActiveTab('board')}
-            className={`px-6 py-2 rounded font-bold uppercase text-sm tracking-wider transition-colors flex items-center gap-2
-              ${activeTab === 'board' 
-                ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]' 
-                : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
-              }`}
-          >
-            <span>📺</span>
-            Game Screen
-          </button>
+      {/* NAVIGATION TABS - Hidden in Board Mode */}
+      {activeTab === 'admin' && (
+        <div className="bg-slate-900 border-b border-slate-700 p-2 flex items-center justify-center shrink-0">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={`px-6 py-2 rounded font-bold uppercase text-sm tracking-wider transition-colors flex items-center gap-2
+                ${activeTab === 'admin' 
+                  ? 'bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.4)]' 
+                  : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                }`}
+            >
+              <span>🎮</span>
+              Host Controls
+            </button>
+            <button
+              onClick={() => setActiveTab('board')}
+              className={`px-6 py-2 rounded font-bold uppercase text-sm tracking-wider transition-colors flex items-center gap-2
+                ${activeTab === 'board' 
+                  ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]' 
+                  : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                }`}
+            >
+              <span>📺</span>
+              Game Screen
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* TAB CONTENT */}
       <div className="flex-1 overflow-auto bg-slate-100 relative">
@@ -270,7 +306,7 @@ const App: React.FC = () => {
       </div>
 
       {/* RESUME OVERLAY (Fixes Audio Autoplay on Reload) */}
-      {showResumeOverlay && (
+      {showResumeOverlay && activeTab === 'admin' && (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-800 border-4 border-yellow-500 rounded-xl p-8 max-w-md w-full text-center shadow-2xl">
              <div className="text-6xl mb-4">⏸️</div>

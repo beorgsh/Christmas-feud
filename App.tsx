@@ -26,8 +26,9 @@ const App: React.FC = () => {
   const [showResumeOverlay, setShowResumeOverlay] = useState(false);
   const [isReplacingQuestion, setIsReplacingQuestion] = useState(false);
 
-  // BroadcastChannel Reference
+  // Refs
   const channelRef = useRef<BroadcastChannel | null>(null);
+  const strikeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Initialize state from LocalStorage if available
   const [state, setState] = useState<GameState>(() => {
@@ -146,16 +147,22 @@ const App: React.FC = () => {
     
     audioService.playBuzz();
 
+    // Clear any existing timeout to prevent premature hiding if clicked rapidly
+    if (strikeTimeoutRef.current) {
+      clearTimeout(strikeTimeoutRef.current);
+    }
+
     setState(prev => ({
       ...prev,
       strikes: prev.strikes + 1,
       showStrikeOverlay: true
     }));
 
-    // Fast timeout (0.8s)
-    setTimeout(() => {
+    // Set timeout to match the 2s animation duration
+    strikeTimeoutRef.current = setTimeout(() => {
       setState(prev => ({ ...prev, showStrikeOverlay: false }));
-    }, 800);
+      strikeTimeoutRef.current = null;
+    }, 2000);
   };
 
   const clearStrikes = () => {

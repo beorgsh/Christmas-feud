@@ -41,13 +41,18 @@
       .card-back {
         transform: rotateX(180deg);
       }
-      @keyframes popIn {
+      
+      /* New Strike Animation Lifecycle: Enter -> Stay -> Fade Out */
+      @keyframes strikeSequence {
         0% { transform: scale(0); opacity: 0; }
-        70% { transform: scale(1.2); opacity: 1; }
-        100% { transform: scale(1); opacity: 1; }
+        10% { transform: scale(1.2); opacity: 1; }
+        15% { transform: scale(1); opacity: 1; }
+        75% { transform: scale(1); opacity: 1; } /* Stay visible */
+        100% { transform: scale(1.5); opacity: 0; } /* Fade out and scale up */
       }
+      
       .strike-anim {
-        animation: popIn 0.15s ease-out forwards; /* Much faster strike entrance */
+        animation: strikeSequence 2s ease-in-out forwards;
       }
     </style>
   <script type="importmap">

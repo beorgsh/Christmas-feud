@@ -2,7 +2,24 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// --- SAFE API KEY ACCESS ---
+// This prevents "ReferenceError: process is not defined" in browser environments
+const getApiKey = (): string | undefined => {
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      return process.env.API_KEY;
+    }
+  } catch (e) {
+    // Ignore error if process is not accessible
+  }
+  return undefined;
+};
+
+const API_KEY = getApiKey();
+
+// Initialize AI with a fallback key if missing to prevent instant crash.
+// Actual calls are guarded below.
+const ai = new GoogleGenAI({ apiKey: API_KEY || 'MISSING_KEY_FALLBACK' });
 
 // Fixed Question List provided by user
 const FIXED_QUESTIONS: Question[] = [
@@ -168,7 +185,7 @@ export const fetchQuestionFromList = (): Question => {
 // Helper to get AI question
 export const fetchQuestionFromAI = async (): Promise<Question> => {
   try {
-    if (!process.env.API_KEY) throw new Error("No API Key");
+    if (!API_KEY) throw new Error("No API Key available in environment");
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -205,7 +222,9 @@ export const fetchSingleQuestion = async (): Promise<Question> => {
 
 export const fetchGameContent = async (): Promise<Question[]> => {
   try {
-    if (!process.env.API_KEY) {
+    // Fallback immediately if key is missing to prevent API errors
+    if (!API_KEY) {
+        console.warn("No API Key found, using fixed question set.");
         return fetchFixedGameSet();
     }
 

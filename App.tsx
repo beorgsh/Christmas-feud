@@ -35,7 +35,18 @@ const App: React.FC = () => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        
+        // CRITICAL FIX: If the app was closed/reloaded while loading, it gets stuck.
+        // Revert 'LOADING' phase back to 'REGISTRATION' so the user can try again.
+        if (parsed.phase === GamePhase.LOADING) {
+          return {
+            ...parsed,
+            phase: GamePhase.REGISTRATION
+          };
+        }
+        
+        return parsed;
       }
     } catch (e) {
       console.error("Failed to load saved game", e);

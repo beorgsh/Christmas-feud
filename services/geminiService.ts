@@ -16,6 +16,11 @@ const getApiKey = (): string | undefined => {
 
 const API_KEY = getApiKey();
 
+// Export a helper to check if AI features are available
+export const hasApiKey = (): boolean => {
+  return !!API_KEY && API_KEY !== 'MISSING_KEY_FALLBACK';
+};
+
 // Initialize AI with a fallback key if missing to prevent instant crash.
 // Actual calls are guarded below.
 const ai = new GoogleGenAI({ apiKey: API_KEY || 'MISSING_KEY_FALLBACK' });
@@ -185,7 +190,7 @@ export const fetchQuestionFromList = (): Question => {
 // Helper to get AI question
 // Note: We intentionally allow this to throw errors so the UI can handle fallbacks and notifications.
 export const fetchQuestionFromAI = async (): Promise<Question> => {
-  if (!API_KEY || API_KEY === 'MISSING_KEY_FALLBACK') {
+  if (!hasApiKey()) {
       throw new Error("Missing API Key");
   }
 
@@ -215,7 +220,7 @@ export const fetchQuestionFromAI = async (): Promise<Question> => {
 export const fetchGameContent = async (): Promise<Question[]> => {
   try {
     // Fallback immediately if key is missing to prevent API errors
-    if (!API_KEY) {
+    if (!hasApiKey()) {
         console.warn("No API Key found, using fixed question set.");
         return fetchFixedGameSet();
     }

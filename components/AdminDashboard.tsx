@@ -15,6 +15,7 @@ interface Props {
   onReplaceAI: () => void;
   onReplaceList: () => void;
   isReplacing: boolean;
+  isOffline: boolean;
 }
 
 const AdminDashboard: React.FC<Props> = ({ 
@@ -28,7 +29,8 @@ const AdminDashboard: React.FC<Props> = ({
   onToggleMusic,
   onReplaceAI,
   onReplaceList,
-  isReplacing
+  isReplacing,
+  isOffline
 }) => {
   const currentQuestion = state.questions[state.currentRoundIndex];
 
@@ -39,7 +41,10 @@ const AdminDashboard: React.FC<Props> = ({
       <div className="bg-slate-800 text-white p-4 flex justify-between items-center shadow-md border-b-4 border-yellow-500 sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <span className="bg-yellow-500 text-black text-xs px-2 py-1 rounded font-bold uppercase tracking-wider">HOST</span>
-          <h1 className="text-xl font-bold uppercase tracking-wider hidden md:block">Control Panel</h1>
+          <h1 className="text-xl font-bold uppercase tracking-wider hidden md:block">
+            Control Panel 
+            {isOffline && <span className="ml-2 text-xs bg-red-600 text-white px-2 py-0.5 rounded-full normal-case tracking-normal">Offline Mode</span>}
+          </h1>
         </div>
         
         <div className="flex items-center gap-4">
@@ -177,8 +182,9 @@ const AdminDashboard: React.FC<Props> = ({
 
                   <button 
                     onClick={onReplaceAI}
-                    disabled={isReplacing}
-                    className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs px-3 py-2 rounded font-bold uppercase tracking-wider shadow transition-colors"
+                    disabled={isReplacing || isOffline}
+                    className={`flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs px-3 py-2 rounded font-bold uppercase tracking-wider shadow transition-colors ${isOffline ? 'grayscale cursor-not-allowed' : ''}`}
+                    title={isOffline ? "Unavailable: API Key missing in deployment" : "Generate new question with AI"}
                   >
                     {isReplacing ? (
                       <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -188,7 +194,7 @@ const AdminDashboard: React.FC<Props> = ({
                     ) : (
                       <span>🤖</span>
                     )}
-                    AI Question
+                    {isOffline ? 'AI Offline' : 'AI Question'}
                   </button>
               </div>
             </div>

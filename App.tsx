@@ -4,7 +4,7 @@ import { GamePhase, GameState, Question } from './types';
 import Registration from './components/Registration';
 import AdminDashboard from './components/AdminDashboard';
 import GameView from './components/GameView';
-import { fetchGameContent, fetchQuestionFromAI, fetchQuestionFromList, fetchFixedGameSet } from './services/geminiService';
+import { fetchGameContent, fetchQuestionFromAI, fetchQuestionFromList, fetchFixedGameSet, hasApiKey } from './services/geminiService';
 import { audioService } from './services/audioService';
 
 const STORAGE_KEY = 'paskong-pinoy-feud-state';
@@ -26,6 +26,8 @@ const App: React.FC = () => {
   const [showResumeOverlay, setShowResumeOverlay] = useState(false);
   const [isReplacingQuestion, setIsReplacingQuestion] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const isOffline = !hasApiKey();
 
   // Refs
   const channelRef = useRef<BroadcastChannel | null>(null);
@@ -254,7 +256,7 @@ const App: React.FC = () => {
       replaceCurrentQuestion(newQuestion);
     } catch (e: any) {
       console.error("Failed to replace AI question", e);
-      setErrorMessage("AI generation failed (Check API Key). Using offline question.");
+      setErrorMessage("AI generation failed. Using offline question.");
       
       // Fallback to local list if AI fails, but let the user know via the error message
       const localQuestion = fetchQuestionFromList();
@@ -380,7 +382,7 @@ const App: React.FC = () => {
           
           {/* Error Toast for AI Failures */}
           {errorMessage && (
-            <div className="absolute top-14 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-xs px-4 py-2 rounded-full shadow-xl animate-bounce">
+            <div className="absolute top-14 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-xs px-4 py-2 rounded-full shadow-xl animate-bounce z-[70]">
               {errorMessage}
             </div>
           )}
@@ -406,6 +408,7 @@ const App: React.FC = () => {
                 onReplaceAI={handleReplaceAI}
                 onReplaceList={handleReplaceList}
                 isReplacing={isReplacingQuestion}
+                isOffline={isOffline}
              />
           )
         ) : (

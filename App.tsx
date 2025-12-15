@@ -185,8 +185,9 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, phase: GamePhase.LOADING }));
     
     try {
-      // FIXED: Use the fixed list initially as requested
-      const questions = fetchFixedGameSet();
+      // Use AI to fetch questions
+      // If API key is missing or call fails, it falls back to fixed set internally
+      const questions = await fetchGameContent();
       
       setState(prev => ({
         ...prev,
@@ -202,6 +203,20 @@ const App: React.FC = () => {
       }));
     } catch (error) {
       console.error("Failed to fetch questions:", error);
+      // Fallback in case fetchGameContent throws (though it shouldn't)
+      const fixedQuestions = fetchFixedGameSet();
+      setState(prev => ({
+        ...prev,
+        teams: {
+          1: { ...prev.teams[1], name: t1 },
+          2: { ...prev.teams[2], name: t2 }
+        },
+        questions: fixedQuestions,
+        phase: GamePhase.PLAYING,
+        currentRoundIndex: 0,
+        strikes: 0,
+        currentRoundScore: 0
+      }));
     }
   };
 
@@ -343,7 +358,7 @@ const App: React.FC = () => {
       )}
 
       {/* TAB CONTENT */}
-      <div className="flex-1 overflow-auto bg-slate-100 relative">
+      <div className="flex-1 overflow-auto bg-slate-900 relative">
         {activeTab === 'admin' ? (
           // ADMIN TAB
           state.phase === GamePhase.REGISTRATION || state.phase === GamePhase.LOADING ? (

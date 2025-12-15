@@ -45,7 +45,7 @@ const Registration: React.FC<Props> = ({ onStart, isLoading, isHost }) => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-800 via-red-900 to-slate-900 p-4 relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen w-full bg-gradient-to-b from-red-800 via-red-900 to-slate-900 p-4 relative overflow-hidden">
       
       {/* Decorations */}
       <ChristmasLights />

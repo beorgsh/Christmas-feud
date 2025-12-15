@@ -3,16 +3,15 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "../types";
 
 // --- SAFE API KEY ACCESS ---
-// This prevents "ReferenceError: process is not defined" in browser environments
+// We try to access process.env.API_KEY safely.
+// In many modern bundlers, process.env.API_KEY is replaced at build time with the string value.
 const getApiKey = (): string | undefined => {
   try {
-    if (typeof process !== 'undefined' && process.env) {
-      return process.env.API_KEY;
-    }
+    // @ts-ignore
+    return process.env.API_KEY;
   } catch (e) {
-    // Ignore error if process is not accessible
+    return undefined;
   }
-  return undefined;
 };
 
 const API_KEY = getApiKey();

@@ -1,16 +1,16 @@
 
 // Sound Assets
 // We use a list for music to provide fallbacks if one CDN fails.
-// Mixing Archive.org and Wikimedia for maximum redundancy.
+// Using royalty-free Christmas music from Pixabay.
 const MUSIC_TRACKS = [
-  // 1. Jingle Bells (Archive.org)
-  'https://archive.org/download/Kevin_MacLeod_-_Jingle_Bells/Kevin_MacLeod_-_Jingle_Bells.mp3',
-  // 2. Jingle Bells (Wikimedia Backup)
-  'https://upload.wikimedia.org/wikipedia/commons/e/e9/Jingle_Bells_%28Kevin_MacLeod%29_%28ISRC_USUAN1100187%29.mp3',
-  // 3. Deck the Halls (Archive.org)
-  'https://archive.org/download/Deck_the_Halls_1489/Kevin_MacLeod_-_Deck_the_Halls.mp3',
-  // 4. We Wish You a Merry Christmas (Archive.org)
-  'https://archive.org/download/We_Wish_You_a_Merry_Christmas_1365/Kevin_MacLeod_-_We_Wish_You_a_Merry_Christmas.mp3'
+  // 1. Jingle Bells (Pixabay)
+  'https://cdn.pixabay.com/audio/2022/11/22/audio_febc508520.mp3',
+  // 2. We Wish You A Merry Christmas (Pixabay)
+  'https://cdn.pixabay.com/audio/2022/12/16/audio_3306637508.mp3',
+  // 3. Deck the Halls (Pixabay)
+  'https://cdn.pixabay.com/audio/2020/12/22/audio_894c25f483.mp3',
+  // 4. Christmas Magic (Pixabay Fallback)
+  'https://cdn.pixabay.com/audio/2021/11/01/audio_00fa563045.mp3'
 ];
 
 const SOUNDS = {

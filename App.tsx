@@ -320,8 +320,8 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       
-      {/* NAVIGATION TABS - Hidden in Board Mode */}
-      {activeTab === 'admin' && (
+      {/* NAVIGATION TABS - Hidden in Board Mode AND during Registration */}
+      {activeTab === 'admin' && state.phase !== GamePhase.REGISTRATION && state.phase !== GamePhase.LOADING && (
         <div className="bg-slate-900 border-b border-slate-700 p-2 flex items-center justify-center shrink-0">
           <div className="flex gap-2">
             <button

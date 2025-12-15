@@ -11,6 +11,20 @@ interface Props {
   onBackToAdmin: () => void;
 }
 
+// Christmas Lights Component
+const ChristmasLights = () => (
+  <div className="absolute top-0 left-0 right-0 flex justify-center overflow-hidden z-20 pointer-events-none">
+     <div className="flex space-x-12 md:space-x-16 -mt-2">
+       {Array.from({ length: 16 }).map((_, i) => (
+         <div key={i} className="relative">
+            <div className="w-[1px] h-8 bg-gray-900 absolute left-1/2 -top-4"></div>
+            <div className={`w-4 h-4 rounded-full shadow-[0_0_10px_currentColor] ${i % 3 === 0 ? 'bg-red-500 text-red-500 light-odd' : i % 3 === 1 ? 'bg-yellow-400 text-yellow-400 light-even' : 'bg-green-500 text-green-500 light-odd'}`}></div>
+         </div>
+       ))}
+     </div>
+  </div>
+);
+
 const GameView: React.FC<Props> = ({ state, onBackToAdmin }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -52,6 +66,7 @@ const GameView: React.FC<Props> = ({ state, onBackToAdmin }) => {
       const isTie = state.teams[1].score === state.teams[2].score;
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-green-900 via-red-900 to-black text-white p-8 text-center relative overflow-hidden">
+          <ChristmasLights />
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/snow.png')] opacity-20 animate-pulse"></div>
           
           <h1 className="text-7xl text-yellow-400 font-display mb-8 drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] z-10">Maligayang Pasko!</h1>
@@ -82,10 +97,31 @@ const GameView: React.FC<Props> = ({ state, onBackToAdmin }) => {
       <div className="min-h-screen bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-800 via-red-950 to-slate-900 flex flex-col items-center relative overflow-hidden">
         
         {/* Decorative Background Elements */}
+        <ChristmasLights />
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/christmas-magic.png')] opacity-30 pointer-events-none"></div>
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
             <div className="absolute -top-20 -left-20 w-96 h-96 bg-green-900/30 rounded-full blur-[100px]"></div>
             <div className="absolute top-1/2 -right-20 w-80 h-80 bg-yellow-600/20 rounded-full blur-[80px]"></div>
+        </div>
+
+        {/* Tree and Gifts Overlay */}
+        <div className="absolute bottom-0 left-0 w-32 md:w-64 opacity-50 pointer-events-none hidden lg:block z-0">
+         <svg viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M50 10 L10 110 H90 L50 10 Z" fill="#166534" />
+            <rect x="40" y="110" width="20" height="30" fill="#78350f" />
+            <circle cx="30" cy="80" r="5" fill="#ef4444" className="light-odd" />
+            <circle cx="70" cy="80" r="5" fill="#fbbf24" className="light-even" />
+         </svg>
+        </div>
+
+        <div className="absolute bottom-0 right-0 w-24 md:w-48 opacity-50 pointer-events-none hidden lg:block z-0">
+         <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="10" y="40" width="40" height="40" fill="#ef4444" />
+            <rect x="25" y="40" width="10" height="40" fill="#fbbf24" />
+            <rect x="10" y="55" width="40" height="10" fill="#fbbf24" />
+            <rect x="55" y="30" width="35" height="50" fill="#2563eb" />
+            <rect x="68" y="30" width="8" height="50" fill="#ffffff" />
+         </svg>
         </div>
 
         {/* Header */}

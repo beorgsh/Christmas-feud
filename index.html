@@ -54,6 +54,18 @@
       .strike-anim {
         animation: strikeSequence 2s ease-in-out forwards;
       }
+
+      /* Christmas Lights Animation */
+      @keyframes flash-odd { 
+        0%, 100% { opacity: 1; box-shadow: 0 0 10px currentColor; } 
+        50% { opacity: 0.4; box-shadow: 0 0 2px currentColor; } 
+      }
+      @keyframes flash-even { 
+        0%, 100% { opacity: 0.4; box-shadow: 0 0 2px currentColor; } 
+        50% { opacity: 1; box-shadow: 0 0 10px currentColor; } 
+      }
+      .light-odd { animation: flash-odd 1.5s infinite; }
+      .light-even { animation: flash-even 1.5s infinite; }
     </style>
   <script type="importmap">
 {

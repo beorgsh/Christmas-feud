@@ -68,7 +68,7 @@ const AdminDashboard: React.FC<Props> = ({
       <div className="p-4 max-w-6xl mx-auto flex flex-col gap-6">
         
         {/* 2. LIVE BROADCAST (BOARD PREVIEW) */}
-        <section className="bg-slate-900 rounded-xl shadow-2xl border-4 border-yellow-500 relative overflow-hidden flex flex-col items-center p-4 min-h-[300px] justify-center">
+        <section className="bg-slate-900 rounded-xl shadow-2xl border-4 border-yellow-500 relative overflow-hidden flex flex-col items-center p-4 min-h-[400px] justify-center transition-all duration-300">
             {/* Match the GameView Background roughly for preview accuracy */}
             <div className="absolute inset-0 bg-gradient-to-br from-red-900 to-slate-900 opacity-100"></div>
             <div className="absolute top-2 left-0 right-0 text-center z-10">
@@ -76,7 +76,7 @@ const AdminDashboard: React.FC<Props> = ({
             </div>
             
             {isReplacing ? (
-              <div className="relative z-10 text-center">
+              <div className="relative z-10 text-center flex flex-col items-center justify-center h-full w-full">
                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-400 mb-4"></div>
                  <h2 className="text-white text-xl font-bold">Replacing Question...</h2>
               </div>
@@ -159,7 +159,7 @@ const AdminDashboard: React.FC<Props> = ({
               <div>
                 <h2 className="text-gray-400 text-xs uppercase font-bold mb-1">Question & Answers (Click to Toggle)</h2>
                 {isReplacing ? (
-                  <div className="h-8 bg-gray-200 animate-pulse rounded w-96"></div>
+                  <div className="h-8 bg-gray-200 animate-pulse rounded w-48 md:w-96"></div>
                 ) : (
                   <p className="text-xl font-bold text-slate-800 font-display">"{currentQuestion?.text}"</p>
                 )}
@@ -193,7 +193,7 @@ const AdminDashboard: React.FC<Props> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3 min-h-[300px]">
               {isReplacing ? (
                 // Loading Skeletons
                 Array(8).fill(null).map((_, i) => (

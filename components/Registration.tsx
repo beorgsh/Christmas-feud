@@ -25,16 +25,18 @@ const Registration: React.FC<Props> = ({ onStart, isLoading, isHost }) => {
   const [t1, setT1] = useState('');
   const [t2, setT2] = useState('');
 
+  const isDisabled = isLoading || !t1.trim() || !t2.trim();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (t1 && t2) {
+    if (!isDisabled) {
       onStart(t1, t2);
     }
   };
 
   if (!isHost) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen w-full bg-gradient-to-b from-red-900 to-red-950 p-4 relative overflow-hidden">
+      <div className="flex flex-col items-center justify-center min-h-screen w-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-800 via-red-900 to-slate-900 p-4 relative overflow-hidden">
         <ChristmasLights />
         <div className="text-center animate-pulse relative z-20">
           <h1 className="text-6xl font-display text-yellow-400 mb-4 drop-shadow-lg">Paskong Pinoy Feud</h1>
@@ -45,7 +47,7 @@ const Registration: React.FC<Props> = ({ onStart, isLoading, isHost }) => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-full bg-gradient-to-b from-red-800 via-red-900 to-slate-900 p-4 relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen w-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-800 via-red-900 to-slate-900 p-4 relative overflow-hidden">
       
       {/* Decorations */}
       <ChristmasLights />
@@ -104,8 +106,12 @@ const Registration: React.FC<Props> = ({ onStart, isLoading, isHost }) => {
 
           <button 
             type="submit" 
-            disabled={isLoading}
-            className="w-full py-4 mt-4 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-red-900 font-black text-xl uppercase tracking-widest rounded-lg shadow-lg transform active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isDisabled}
+            className={`w-full py-4 mt-4 font-black text-xl uppercase tracking-widest rounded-lg shadow-lg transition-all 
+              ${isDisabled 
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50' 
+                : 'bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-red-900 transform active:scale-95'
+              }`}
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
@@ -113,7 +119,7 @@ const Registration: React.FC<Props> = ({ onStart, isLoading, isHost }) => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Generating Questions...
+                Generating...
               </span>
             ) : "Start Game"}
           </button>

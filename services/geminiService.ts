@@ -65,9 +65,9 @@ const FALLBACK_QUESTIONS: Question[] = [
 ];
 
 export const fetchGameContent = async (): Promise<Question[]> => {
-  // If no API KEY, immediately return the high-quality static list
-  if (!process.env.API_KEY) {
-    console.log("Using Static Paskong Pinoy Content");
+  // Check for missing or placeholder API key
+  if (!process.env.API_KEY || process.env.API_KEY.includes('YOUR_API_KEY')) {
+    console.log("Using Static Paskong Pinoy Content (No Valid API Key)");
     return FALLBACK_QUESTIONS;
   }
 
@@ -96,19 +96,36 @@ export const fetchGameContent = async (): Promise<Question[]> => {
   };
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: "Generate 5 Family Feud style questions related to Filipino Christmas Traditions (Paskong Pinoy). Questions should be in Tagalog or Taglish. Answers should be the most popular survey responses. Ensure high variety.",
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: schema,
-        systemInstruction: "You are a game show writer for Family Feud Philippines. Create fun, culturally relevant questions about Christmas in the Philippines.",
-      },
-    });
+    let response;
+    let error;
+
+    // Retry logic: Attempt up to 3 times
+    for (let i = 0; i < 3; i++) {
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: "Generate 5 Family Feud style questions related to Filipino Christmas Traditions (Paskong Pinoy). Questions should be in Tagalog or Taglish. Answers should be the most popular survey responses. Ensure high variety.",
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: schema,
+            systemInstruction: "You are a game show writer for Family Feud Philippines. Create fun, culturally relevant questions about Christmas in the Philippines.",
+          },
+        });
+        // If successful, break the loop
+        if (response && response.text) break;
+      } catch (e) {
+        error = e;
+        console.warn(`Attempt ${i + 1} failed, retrying...`);
+        // Wait 1 second before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
+    if (!response || !response.text) {
+      throw error || new Error("Failed to generate content after retries");
+    }
 
     const rawData = response.text;
-    if (!rawData) throw new Error("No data returned from Gemini");
-
     const parsedData = JSON.parse(rawData);
     
     // Transform into our app's internal format
@@ -123,7 +140,8 @@ export const fetchGameContent = async (): Promise<Question[]> => {
     }));
 
   } catch (error) {
-    console.error("Gemini API Error, utilizing static list:", error);
+    // Graceful fallback without crashing the app or showing scary errors
+    console.warn("Gemini API currently unavailable or network error. Switching to static content.");
     return FALLBACK_QUESTIONS;
   }
 };

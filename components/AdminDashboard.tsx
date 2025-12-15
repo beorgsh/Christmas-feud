@@ -9,9 +9,11 @@ interface Props {
   onClearStrikes: () => void;
   onAward: (teamId: 1 | 2) => void;
   onReset: () => void;
+  isMusicOn: boolean;
+  onToggleMusic: () => void;
 }
 
-const AdminDashboard: React.FC<Props> = ({ state, onReveal, onStrike, onClearStrikes, onAward, onReset }) => {
+const AdminDashboard: React.FC<Props> = ({ state, onReveal, onStrike, onClearStrikes, onAward, onReset, isMusicOn, onToggleMusic }) => {
   const currentQuestion = state.questions[state.currentRoundIndex];
 
   return (
@@ -25,6 +27,17 @@ const AdminDashboard: React.FC<Props> = ({ state, onReveal, onStrike, onClearStr
         </div>
         
         <div className="flex items-center gap-4">
+           {/* Music Toggle */}
+           <button 
+             onClick={onToggleMusic}
+             className={`flex items-center gap-2 text-xs px-3 py-1 rounded border transition-colors
+               ${isMusicOn ? 'bg-green-600 border-green-500 text-white' : 'bg-slate-700 border-slate-600 text-gray-400 hover:text-white'}
+             `}
+           >
+             <span>{isMusicOn ? '🔊' : '🔇'}</span>
+             <span>Music {isMusicOn ? 'ON' : 'OFF'}</span>
+           </button>
+
            <div className="text-right border-l border-slate-600 pl-4">
              <div className="text-[10px] text-slate-400 uppercase tracking-wider">Current Round</div>
              <div className="font-bold text-yellow-400">Round {state.currentRoundIndex + 1}</div>

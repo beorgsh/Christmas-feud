@@ -9,6 +9,7 @@ import { audioService } from './services/audioService.ts';
 const App: React.FC = () => {
   // Internal Tab State
   const [activeTab, setActiveTab] = useState<'admin' | 'board'>('admin');
+  const [isMusicOn, setIsMusicOn] = useState(false);
 
   const [state, setState] = useState<GameState>({
     teams: {
@@ -28,7 +29,7 @@ const App: React.FC = () => {
   const handleStrike = () => {
     if (state.strikes >= 3) return;
     
-    // Play Sound (Only sound allowed)
+    // Play Strike Sound
     audioService.playBuzz();
 
     setState(prev => ({
@@ -46,9 +47,17 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, strikes: 0 }));
   };
 
+  const toggleMusic = (shouldPlay: boolean) => {
+    setIsMusicOn(shouldPlay);
+    audioService.toggleMusic(shouldPlay);
+  };
+
   const startGame = async (t1: string, t2: string) => {
     setState(prev => ({ ...prev, phase: GamePhase.LOADING }));
     
+    // Start music automatically when game starts
+    toggleMusic(true);
+
     const questions = await fetchGameContent();
     
     setState(prev => ({
@@ -75,7 +84,10 @@ const App: React.FC = () => {
     // Determine if we are revealing or hiding
     const isRevealing = !answer.revealed;
 
-    // Note: No sound for reveal/hide as requested.
+    // Play Reveal Sound (Ding) only when revealing
+    if (isRevealing) {
+      audioService.playDing();
+    }
 
     setState(prev => {
       // Create a deep copy of the questions array
@@ -188,6 +200,8 @@ const App: React.FC = () => {
                 onClearStrikes={clearStrikes}
                 onAward={awardRound}
                 onReset={resetGame}
+                isMusicOn={isMusicOn}
+                onToggleMusic={() => toggleMusic(!isMusicOn)}
              />
           )
         ) : (

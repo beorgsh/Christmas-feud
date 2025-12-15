@@ -11,33 +11,37 @@ const AnswerBoard: React.FC<Props> = ({ answers, onReveal }) => {
   const displaySlots = Array(8).fill(null).map((_, i) => answers[i] || null);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-4xl mx-auto my-6 px-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-5xl mx-auto my-6 px-4">
       {displaySlots.map((answer, idx) => (
         <div 
           key={idx} 
           onClick={() => answer && !answer.revealed && onReveal(idx)}
           className={`
-            h-20 w-full relative perspective-1000 cursor-pointer group
+            h-24 w-full relative perspective-1000 cursor-pointer group
             ${!answer ? 'opacity-0 pointer-events-none hidden md:block' : ''}
             ${answer?.revealed ? 'card-flipped' : ''}
           `}
         >
-          <div className="card-inner w-full h-full border-2 border-yellow-500 shadow-xl rounded-md">
+          <div className="card-inner w-full h-full border-2 border-yellow-600/50 shadow-2xl rounded-lg">
             
             {/* Front of Card (Hidden Answer) */}
-            <div className="card-front bg-gradient-to-b from-blue-700 to-blue-900 rounded-md flex items-center justify-center overflow-hidden">
-              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
-              <div className="w-12 h-12 bg-blue-800 rounded-full flex items-center justify-center border-2 border-yellow-400 shadow-inner">
-                 <span className="text-2xl font-bold text-yellow-400 font-display">{idx + 1}</span>
+            <div className="card-front bg-gradient-to-b from-blue-800 to-slate-900 rounded-lg flex items-center justify-center overflow-hidden border border-white/10">
+              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+              <div className="w-14 h-14 bg-blue-900/80 rounded-full flex items-center justify-center border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]">
+                 <span className="text-3xl font-bold text-yellow-400 font-display drop-shadow-md">{idx + 1}</span>
               </div>
             </div>
 
             {/* Back of Card (Revealed Answer) */}
-            <div className="card-back bg-gradient-to-r from-gray-100 to-white text-black rounded-md flex justify-between items-center px-6 border-2 border-yellow-500">
-               <span className="text-xl md:text-2xl font-bold uppercase text-slate-900 truncate flex-1 text-left">
+            <div className="card-back bg-gradient-to-b from-blue-600 to-blue-800 text-white rounded-lg flex justify-between items-center px-6 border-2 border-yellow-400 shadow-[0_0_20px_rgba(37,99,235,0.5)]">
+               {/* Texture Overlay */}
+               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay"></div>
+               
+               <span className="text-xl md:text-3xl font-bold uppercase text-white truncate flex-1 text-left drop-shadow-lg font-display tracking-wide relative z-10">
                  {answer?.text}
                </span>
-               <div className="bg-blue-900 text-white px-3 py-1 min-w-[3rem] text-center font-bold text-xl border border-white/50 shadow-md">
+               
+               <div className="relative z-10 bg-gradient-to-b from-yellow-300 to-yellow-500 text-red-900 px-4 py-2 min-w-[4rem] text-center font-black text-2xl border-2 border-white/40 shadow-lg rounded-lg transform rotate-1">
                  {answer?.points}
                </div>
             </div>

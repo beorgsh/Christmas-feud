@@ -52,10 +52,11 @@ const AdminDashboard: React.FC<Props> = ({ state, onReveal, onStrike, onClearStr
       <div className="p-4 max-w-6xl mx-auto flex flex-col gap-6">
         
         {/* 2. LIVE BROADCAST (BOARD PREVIEW) */}
-        <section className="bg-slate-900 rounded-xl shadow-2xl border-4 border-yellow-500 relative overflow-hidden flex flex-col items-center p-4 min-h-[250px] justify-center">
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/christmas-magic.png')] opacity-30 pointer-events-none"></div>
+        <section className="bg-slate-900 rounded-xl shadow-2xl border-4 border-yellow-500 relative overflow-hidden flex flex-col items-center p-4 min-h-[300px] justify-center">
+            {/* Match the GameView Background roughly for preview accuracy */}
+            <div className="absolute inset-0 bg-gradient-to-br from-red-900 to-slate-900 opacity-100"></div>
             <div className="absolute top-2 left-0 right-0 text-center z-10">
-                <span className="bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest">Live Board</span>
+                <span className="bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest shadow-md">Live Board Preview</span>
             </div>
             
             <div className="w-full transform scale-75 md:scale-90 lg:scale-100 origin-center z-0 mt-4">
@@ -83,7 +84,7 @@ const AdminDashboard: React.FC<Props> = ({ state, onReveal, onStrike, onClearStr
                   <div className="font-bold text-lg leading-none">{state.teams[1].name || "Team 1"}</div>
                   <div className="text-3xl font-mono text-blue-800">{state.teams[1].score}</div>
                 </div>
-                <button onClick={() => onAward(1)} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded font-bold shadow uppercase text-sm">
+                <button onClick={() => onAward(1)} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded font-bold shadow uppercase text-sm">
                   Award Round
                 </button>
              </div>
@@ -94,7 +95,7 @@ const AdminDashboard: React.FC<Props> = ({ state, onReveal, onStrike, onClearStr
                   <div className="font-bold text-lg leading-none">{state.teams[2].name || "Team 2"}</div>
                   <div className="text-3xl font-mono text-blue-800">{state.teams[2].score}</div>
                 </div>
-                <button onClick={() => onAward(2)} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded font-bold shadow uppercase text-sm">
+                <button onClick={() => onAward(2)} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded font-bold shadow uppercase text-sm">
                   Award Round
                 </button>
              </div>
@@ -144,23 +145,23 @@ const AdminDashboard: React.FC<Props> = ({ state, onReveal, onStrike, onClearStr
                   className={`
                     flex justify-between items-center p-3 rounded border-2 transition-all relative overflow-hidden group
                     ${ans.revealed 
-                      ? 'bg-green-50 border-green-200 cursor-pointer shadow-inner' // Revealed State
-                      : 'bg-white border-blue-200 hover:border-blue-500 hover:bg-blue-50 cursor-pointer shadow-sm hover:shadow-md' // Hidden State
+                      ? 'bg-blue-100 border-blue-400 cursor-pointer shadow-inner' // Revealed State (Changed to Blue)
+                      : 'bg-white border-gray-200 hover:border-blue-400 hover:bg-gray-50 cursor-pointer shadow-sm hover:shadow-md' // Hidden State
                     }
                   `}
                 >
                   <div className="flex items-center gap-3 relative z-10">
                     <div className={`
                       w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm transition-colors
-                      ${ans.revealed ? 'bg-green-600 text-white' : 'bg-blue-600 text-white group-hover:bg-blue-500'}
+                      ${ans.revealed ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600 group-hover:bg-blue-500 group-hover:text-white'}
                     `}>
                       {idx + 1}
                     </div>
-                    <span className={`text-lg font-bold ${ans.revealed ? 'text-green-800' : 'text-slate-800'}`}>
+                    <span className={`text-lg font-bold ${ans.revealed ? 'text-blue-900' : 'text-slate-500'}`}>
                       {ans.text}
                     </span>
                   </div>
-                  <span className={`font-mono font-bold text-xl relative z-10 ${ans.revealed ? 'text-green-600' : 'text-blue-600'}`}>
+                  <span className={`font-mono font-bold text-xl relative z-10 ${ans.revealed ? 'text-blue-700' : 'text-gray-400'}`}>
                     {ans.points}
                   </span>
                   

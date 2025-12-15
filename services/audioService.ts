@@ -1,14 +1,14 @@
 
 // Sound Assets
 const SOUNDS = {
-  // Reliable "Ding" / Correct Answer (Mixkit source is stable and CORS-friendly)
+  // Reliable "Ding" / Correct Answer
   ding: 'https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3',
   
-  // Reliable Game Show Buzzer (Wrong Answer / Strike)
-  buzz: 'https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3',
+  // LOUD Game Show Buzzer (Wrong Answer / Strike) - Sharper and louder than before
+  buzz: 'https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3',
 
-  // Upbeat Christmas Background Music
-  bgMusic: 'https://cdn.pixabay.com/download/audio/2022/11/22/audio_febc508520.mp3?filename=christmas-magic-126456.mp3'
+  // Upbeat Christmas Background Music (Classic Holiday Vibe)
+  bgMusic: 'https://cdn.pixabay.com/download/audio/2021/11/25/audio_91b79ce425.mp3?filename=christmas-spirit-10488.mp3'
 };
 
 class AudioService {
@@ -21,16 +21,15 @@ class AudioService {
     // Initialize Music
     this.bgMusic = new Audio(SOUNDS.bgMusic);
     this.bgMusic.loop = true;
-    this.bgMusic.volume = 0.3; // Gentle background level
+    this.bgMusic.volume = 0.25; // Balanced volume for background
 
     // Initialize SFX
     this.ding = new Audio(SOUNDS.ding);
     this.ding.volume = 0.8;
-    // Explicitly load to ensure readiness
     this.ding.load();
 
     this.buzz = new Audio(SOUNDS.buzz);
-    this.buzz.volume = 1.0; 
+    this.buzz.volume = 1.0; // Max volume for the loud buzzer
     this.buzz.load();
   }
 

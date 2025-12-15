@@ -1,13 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
-import { GamePhase, GameState } from './types';
+import React, { useState, useEffect, useRef } from 'react';
+import { GamePhase, GameState, Question } from './types';
 import Registration from './components/Registration';
 import AdminDashboard from './components/AdminDashboard';
 import GameView from './components/GameView';
-import { fetchGameContent, fetchSingleQuestion } from './services/geminiService';
+import { fetchGameContent, fetchQuestionFromAI, fetchQuestionFromList, fetchFixedGameSet } from './services/geminiService';
 import { audioService } from './services/audioService';
 
 const STORAGE_KEY = 'paskong-pinoy-feud-state';
+const CHANNEL_NAME = 'paskong-pinoy-feud-sync'; // BroadcastChannel name
 
 const App: React.FC = () => {
   // Determine initial tab based on URL parameter
@@ -24,6 +25,9 @@ const App: React.FC = () => {
   const [isMusicOn, setIsMusicOn] = useState(false);
   const [showResumeOverlay, setShowResumeOverlay] = useState(false);
   const [isReplacingQuestion, setIsReplacingQuestion] = useState(false);
+
+  // BroadcastChannel Reference
+  const channelRef = useRef<BroadcastChannel | null>(null);
 
   // Initialize state from LocalStorage if available
   const [state, setState] = useState<GameState>(() => {
@@ -50,22 +54,62 @@ const App: React.FC = () => {
     };
   });
 
-  // Effect: Save state to LocalStorage on change (Sync to other tabs)
+  // Effect: Initialize BroadcastChannel for High-Speed Sync
+  useEffect(() => {
+    // Initialize Channel
+    channelRef.current = new BroadcastChannel(CHANNEL_NAME);
+
+    const handleMessage = (event: MessageEvent) => {
+      const incomingState = event.data;
+      if (incomingState) {
+        setState(prevState => {
+           // Prevent infinite loops and unnecessary renders
+           // Only update if content is actually different
+           if (JSON.stringify(prevState) === JSON.stringify(incomingState)) {
+             return prevState;
+           }
+           return incomingState;
+        });
+      }
+    };
+
+    channelRef.current.onmessage = handleMessage;
+
+    return () => {
+      if (channelRef.current) {
+        channelRef.current.close();
+      }
+    };
+  }, []);
+
+  // Effect: Sync State changes (LocalStorage + BroadcastChannel)
   useEffect(() => {
     const json = JSON.stringify(state);
-    // Only write if value is actually different to prevent write-loops
+    
+    // 1. Persistence (LocalStorage)
+    // We keep this so the game survives a refresh
     if (localStorage.getItem(STORAGE_KEY) !== json) {
       localStorage.setItem(STORAGE_KEY, json);
     }
+
+    // 2. Realtime Sync (BroadcastChannel)
+    // This is much faster than waiting for 'storage' event
+    if (channelRef.current) {
+      channelRef.current.postMessage(state);
+    }
+
   }, [state]);
 
-  // Effect: Listen for changes from other tabs (Sync from other tabs)
+  // Effect: Listen for Storage events (Backup Sync for different windows/browsers if needed)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY && e.newValue) {
         try {
           const newState = JSON.parse(e.newValue);
-          setState(newState);
+          setState(prev => {
+             if (JSON.stringify(prev) === JSON.stringify(newState)) return prev;
+             return newState;
+          });
         } catch (error) {
           console.error("Failed to sync state from storage", error);
         }
@@ -108,9 +152,10 @@ const App: React.FC = () => {
       showStrikeOverlay: true
     }));
 
+    // Fast timeout (0.8s)
     setTimeout(() => {
       setState(prev => ({ ...prev, showStrikeOverlay: false }));
-    }, 1500);
+    }, 800);
   };
 
   const clearStrikes = () => {
@@ -132,43 +177,56 @@ const App: React.FC = () => {
 
     setState(prev => ({ ...prev, phase: GamePhase.LOADING }));
     
-    const questions = await fetchGameContent();
-    
-    setState(prev => ({
-      ...prev,
-      teams: {
-        1: { ...prev.teams[1], name: t1 },
-        2: { ...prev.teams[2], name: t2 }
-      },
-      questions,
-      phase: GamePhase.PLAYING,
-      currentRoundIndex: 0,
-      strikes: 0,
-      currentRoundScore: 0
-    }));
+    try {
+      // FIXED: Use the fixed list initially as requested
+      const questions = fetchFixedGameSet();
+      
+      setState(prev => ({
+        ...prev,
+        teams: {
+          1: { ...prev.teams[1], name: t1 },
+          2: { ...prev.teams[2], name: t2 }
+        },
+        questions,
+        phase: GamePhase.PLAYING,
+        currentRoundIndex: 0,
+        strikes: 0,
+        currentRoundScore: 0
+      }));
+    } catch (error) {
+      console.error("Failed to fetch questions:", error);
+    }
   };
 
-  const handleReplaceQuestion = async () => {
+  const replaceCurrentQuestion = (newQuestion: Question) => {
+    setState(prev => {
+      const updatedQuestions = [...prev.questions];
+      updatedQuestions[prev.currentRoundIndex] = newQuestion;
+      
+      return {
+        ...prev,
+        questions: updatedQuestions,
+        currentRoundScore: 0, // Reset the pot
+        strikes: 0 // Reset strikes
+      };
+    });
+  };
+
+  const handleReplaceAI = async () => {
     setIsReplacingQuestion(true);
     try {
-      const newQuestion = await fetchSingleQuestion();
-      setState(prev => {
-        // Create a copy of the questions array
-        const updatedQuestions = [...prev.questions];
-        // Replace the current index
-        updatedQuestions[prev.currentRoundIndex] = newQuestion;
-        
-        return {
-          ...prev,
-          questions: updatedQuestions,
-          currentRoundScore: 0, // Reset the pot for this round
-          strikes: 0 // Reset strikes
-        };
-      });
+      const newQuestion = await fetchQuestionFromAI();
+      replaceCurrentQuestion(newQuestion);
     } catch (e) {
-      console.error("Failed to replace question", e);
+      console.error("Failed to replace AI question", e);
     }
     setIsReplacingQuestion(false);
+  };
+
+  const handleReplaceList = () => {
+    // Instant replacement from local list
+    const newQuestion = fetchQuestionFromList();
+    replaceCurrentQuestion(newQuestion);
   };
 
   const toggleAnswer = (answerIndex: number) => {
@@ -246,6 +304,12 @@ const App: React.FC = () => {
     audioService.toggleMusic(false);
   };
 
+  // Open Game Board in new Tab
+  const openGameWindow = () => {
+    const url = window.location.href.split('?')[0] + '?role=board';
+    window.open(url, '_blank', 'width=1280,height=720');
+  };
+
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       
@@ -254,26 +318,18 @@ const App: React.FC = () => {
         <div className="bg-slate-900 border-b border-slate-700 p-2 flex items-center justify-center shrink-0">
           <div className="flex gap-2">
             <button
-              onClick={() => setActiveTab('admin')}
-              className={`px-6 py-2 rounded font-bold uppercase text-sm tracking-wider transition-colors flex items-center gap-2
-                ${activeTab === 'admin' 
-                  ? 'bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.4)]' 
-                  : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
-                }`}
+              disabled
+              className="px-6 py-2 rounded font-bold uppercase text-sm tracking-wider flex items-center gap-2 bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.4)] cursor-default"
             >
               <span>🎮</span>
               Host Controls
             </button>
             <button
-              onClick={() => setActiveTab('board')}
-              className={`px-6 py-2 rounded font-bold uppercase text-sm tracking-wider transition-colors flex items-center gap-2
-                ${activeTab === 'board' 
-                  ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]' 
-                  : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
-                }`}
+              onClick={openGameWindow}
+              className="px-6 py-2 rounded font-bold uppercase text-sm tracking-wider flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white shadow transition-colors"
             >
-              <span>📺</span>
-              Game Screen
+              <span>🚀</span>
+              Open Game Window
             </button>
           </div>
         </div>
@@ -295,13 +351,14 @@ const App: React.FC = () => {
                 onReset={resetGame}
                 isMusicOn={isMusicOn}
                 onToggleMusic={() => toggleMusic(!isMusicOn)}
-                onReplaceQuestion={handleReplaceQuestion}
+                onReplaceAI={handleReplaceAI}
+                onReplaceList={handleReplaceList}
                 isReplacing={isReplacingQuestion}
              />
           )
         ) : (
           // GAME SCREEN TAB
-          <GameView state={state} />
+          <GameView state={state} onBackToAdmin={() => setActiveTab('admin')} />
         )}
       </div>
 

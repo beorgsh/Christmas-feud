@@ -1,5 +1,8 @@
 
+import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "../types";
+
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // Fixed Question List provided by user
 const FIXED_QUESTIONS: Question[] = [
@@ -68,21 +71,168 @@ const FIXED_QUESTIONS: Question[] = [
   }
 ];
 
-export const fetchSingleQuestion = async (): Promise<Question> => {
-  // Return a random question from the fixed list if the host needs to swap
-  const random = FIXED_QUESTIONS[Math.floor(Math.random() * FIXED_QUESTIONS.length)];
-  return {
-    ...random,
-    id: `replacement-${Date.now()}`,
-    answers: random.answers.map(a => ({ ...a, revealed: false }))
-  };
-}
+// Schema for Gemini JSON Output
+const questionSchema = {
+    type: Type.OBJECT,
+    properties: {
+        text: { type: Type.STRING, description: "The Family Feud style question text in Taglish/Tagalog" },
+        answers: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    text: { type: Type.STRING, description: "Answer text" },
+                    points: { type: Type.INTEGER, description: "Survey points" }
+                }
+            }
+        }
+    },
+    required: ["text", "answers"]
+};
 
-export const fetchGameContent = async (): Promise<Question[]> => {
-  console.log("Loading Fixed Question Set...");
-  // Return the full fixed list, ensuring deep copy so game state is fresh
-  return FIXED_QUESTIONS.map(q => ({
+const gameContentSchema = {
+    type: Type.ARRAY,
+    items: questionSchema
+};
+
+const SYSTEM_INSTRUCTION = `
+You are a game show host for "Family Feud Philippines: Paskong Pinoy Edition". 
+Your task is to generate survey questions related to Filipino Christmas traditions, foods, habits, and culture.
+The questions should be relatable to Filipinos (masa culture to corporate culture).
+Use "Taglish" (Tagalog-English mix) for the questions to make them sound authentic and conversational.
+Answers should be in English or Tagalog (whichever is more common).
+Points should roughly total 100 for each question.
+Provide 5-8 answers per question.
+`;
+
+// Helper: Normalize points to ensure they strictly equal 100
+const normalizeQuestionPoints = (question: Question): Question => {
+  if (!question.answers || question.answers.length === 0) return question;
+
+  const currentSum = question.answers.reduce((sum, a) => sum + a.points, 0);
+  const diff = 100 - currentSum;
+
+  if (diff !== 0) {
+    // Clone answers to avoid mutation
+    const newAnswers = [...question.answers];
+    
+    // Adjust the answer with the highest points to absorb the difference
+    // This maintains the relative distribution best
+    let targetIndex = 0;
+    let maxPoints = -Infinity;
+    
+    newAnswers.forEach((a, idx) => {
+        if (a.points > maxPoints) {
+            maxPoints = a.points;
+            targetIndex = idx;
+        }
+    });
+
+    newAnswers[targetIndex] = {
+        ...newAnswers[targetIndex],
+        points: Math.max(1, newAnswers[targetIndex].points + diff) // Ensure it doesn't drop to 0 or negative
+    };
+    
+    // Double check if normalization caused < 100 due to Math.max(1) clamp (rare edge case)
+    // If we still have discrepancy, just force it on the first one
+    const checkSum = newAnswers.reduce((sum, a) => sum + a.points, 0);
+    if (checkSum !== 100) {
+        newAnswers[0].points += (100 - checkSum);
+    }
+
+    return { ...question, answers: newAnswers };
+  }
+
+  return question;
+};
+
+// Returns the predefined list of questions, formatted correctly
+export const fetchFixedGameSet = (): Question[] => {
+  return FIXED_QUESTIONS.map(q => normalizeQuestionPoints({
     ...q,
     answers: q.answers.map(a => ({ ...a, revealed: false }))
   }));
+};
+
+// Helper to get random fixed question
+export const fetchQuestionFromList = (): Question => {
+  const random = FIXED_QUESTIONS[Math.floor(Math.random() * FIXED_QUESTIONS.length)];
+  const rawQuestion = {
+    ...random,
+    id: `replacement-fixed-${Date.now()}`,
+    answers: random.answers.map(a => ({ ...a, revealed: false }))
+  };
+  return normalizeQuestionPoints(rawQuestion);
+};
+
+// Helper to get AI question
+export const fetchQuestionFromAI = async (): Promise<Question> => {
+  try {
+    if (!process.env.API_KEY) throw new Error("No API Key");
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: "Generate 1 unique Family Feud question about Filipino Christmas.",
+      config: {
+        systemInstruction: SYSTEM_INSTRUCTION,
+        responseMimeType: "application/json",
+        responseSchema: questionSchema,
+        temperature: 1.0, 
+      },
+    });
+
+    const json = JSON.parse(response.text || '{}');
+    if (json.text && Array.isArray(json.answers)) {
+       const rawQuestion = {
+         id: `ai-${Date.now()}`,
+         text: json.text,
+         answers: json.answers.map((a: any) => ({ text: a.text.toUpperCase(), points: a.points, revealed: false }))
+       };
+       return normalizeQuestionPoints(rawQuestion);
+    }
+    throw new Error("Invalid JSON structure");
+
+  } catch (error) {
+    console.warn("AI generation failed, using fallback.", error);
+    return fetchQuestionFromList();
+  }
+}
+
+// Kept for backward compatibility if needed, or initial load
+export const fetchSingleQuestion = async (): Promise<Question> => {
+    return fetchQuestionFromAI();
+}
+
+export const fetchGameContent = async (): Promise<Question[]> => {
+  try {
+    if (!process.env.API_KEY) {
+        return fetchFixedGameSet();
+    }
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: "Generate 5 unique Family Feud questions about Filipino Christmas.",
+      config: {
+        systemInstruction: SYSTEM_INSTRUCTION,
+        responseMimeType: "application/json",
+        responseSchema: gameContentSchema,
+        temperature: 0.9,
+      },
+    });
+
+    const json = JSON.parse(response.text || '[]');
+    if (Array.isArray(json) && json.length > 0) {
+      return json.map((q: any, index: number) => normalizeQuestionPoints({
+        id: `ai-set-${Date.now()}-${index}`,
+        text: q.text,
+        answers: q.answers.map((a: any) => ({ text: a.text.toUpperCase(), points: a.points, revealed: false }))
+      }));
+    }
+    
+    throw new Error("Invalid AI response");
+
+  } catch (error) {
+    console.warn("AI generation failed, loading fixed set.", error);
+    return fetchFixedGameSet();
+  }
 };

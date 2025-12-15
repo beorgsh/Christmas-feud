@@ -25,6 +25,7 @@ const App: React.FC = () => {
   const [isMusicOn, setIsMusicOn] = useState(false);
   const [showResumeOverlay, setShowResumeOverlay] = useState(false);
   const [isReplacingQuestion, setIsReplacingQuestion] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Refs
   const channelRef = useRef<BroadcastChannel | null>(null);
@@ -247,11 +248,20 @@ const App: React.FC = () => {
 
   const handleReplaceAI = async () => {
     setIsReplacingQuestion(true);
+    setErrorMessage(null);
     try {
       const newQuestion = await fetchQuestionFromAI();
       replaceCurrentQuestion(newQuestion);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to replace AI question", e);
+      setErrorMessage("AI generation failed (Check API Key). Using offline question.");
+      
+      // Fallback to local list if AI fails, but let the user know via the error message
+      const localQuestion = fetchQuestionFromList();
+      replaceCurrentQuestion(localQuestion);
+      
+      // Clear error after 3 seconds
+      setTimeout(() => setErrorMessage(null), 4000);
     }
     setIsReplacingQuestion(false);
   };
@@ -344,27 +354,36 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-[100dvh] overflow-hidden">
       
-      {/* NAVIGATION TABS - Hidden in Board Mode AND during Registration */}
+      {/* NAVIGATION TABS - High Z-Index to prevent hiding */}
       {activeTab === 'admin' && state.phase !== GamePhase.REGISTRATION && state.phase !== GamePhase.LOADING && (
-        <div className="bg-slate-900 border-b border-slate-700 p-2 flex items-center justify-center shrink-0">
+        <div className="bg-slate-900 border-b border-slate-700 p-2 flex flex-wrap items-center justify-center shrink-0 z-[60] relative shadow-lg min-h-[60px]">
           <div className="flex gap-2">
             <button
               disabled
-              className="px-6 py-2 rounded font-bold uppercase text-sm tracking-wider flex items-center gap-2 bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.4)] cursor-default"
+              className="px-4 py-2 rounded font-bold uppercase text-xs sm:text-sm tracking-wider flex items-center gap-2 bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.4)] cursor-default whitespace-nowrap"
             >
               <span>🎮</span>
-              Host Controls
+              <span className="hidden sm:inline">Host Controls</span>
+              <span className="sm:hidden">Host</span>
             </button>
             <button
               onClick={openGameWindow}
-              className="px-6 py-2 rounded font-bold uppercase text-sm tracking-wider flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white shadow transition-colors"
+              className="px-4 py-2 rounded font-bold uppercase text-xs sm:text-sm tracking-wider flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white shadow transition-colors whitespace-nowrap"
             >
               <span>🚀</span>
-              Open Game Window
+              <span className="hidden sm:inline">Open Game Window</span>
+              <span className="sm:hidden">Board</span>
             </button>
           </div>
+          
+          {/* Error Toast for AI Failures */}
+          {errorMessage && (
+            <div className="absolute top-14 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-xs px-4 py-2 rounded-full shadow-xl animate-bounce">
+              {errorMessage}
+            </div>
+          )}
         </div>
       )}
 

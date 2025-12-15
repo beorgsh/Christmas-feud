@@ -119,6 +119,7 @@ Use "Taglish" (Tagalog-English mix) for the questions to make them sound authent
 Answers should be in English or Tagalog (whichever is more common).
 Points should roughly total 100 for each question.
 Provide 5-8 answers per question.
+IMPORTANT: Return raw JSON only.
 `;
 
 // Helper: Normalize points to ensure they strictly equal 100
@@ -182,41 +183,33 @@ export const fetchQuestionFromList = (): Question => {
 };
 
 // Helper to get AI question
+// Note: We intentionally allow this to throw errors so the UI can handle fallbacks and notifications.
 export const fetchQuestionFromAI = async (): Promise<Question> => {
-  try {
-    if (!API_KEY) throw new Error("No API Key available in environment");
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: "Generate 1 unique Family Feud question about Filipino Christmas.",
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        responseSchema: questionSchema,
-        temperature: 1.0, 
-      },
-    });
-
-    const json = JSON.parse(response.text || '{}');
-    if (json.text && Array.isArray(json.answers)) {
-       const rawQuestion = {
-         id: `ai-${Date.now()}`,
-         text: json.text,
-         answers: json.answers.map((a: any) => ({ text: a.text.toUpperCase(), points: a.points, revealed: false }))
-       };
-       return normalizeQuestionPoints(rawQuestion);
-    }
-    throw new Error("Invalid JSON structure");
-
-  } catch (error) {
-    console.warn("AI generation failed, using fallback.", error);
-    return fetchQuestionFromList();
+  if (!API_KEY || API_KEY === 'MISSING_KEY_FALLBACK') {
+      throw new Error("Missing API Key");
   }
-}
 
-// Kept for backward compatibility if needed, or initial load
-export const fetchSingleQuestion = async (): Promise<Question> => {
-    return fetchQuestionFromAI();
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: "Generate 1 unique Family Feud question about Filipino Christmas in JSON format.",
+    config: {
+      systemInstruction: SYSTEM_INSTRUCTION,
+      responseMimeType: "application/json",
+      responseSchema: questionSchema,
+      temperature: 0.7, 
+    },
+  });
+
+  const json = JSON.parse(response.text || '{}');
+  if (json.text && Array.isArray(json.answers)) {
+      const rawQuestion = {
+        id: `ai-${Date.now()}`,
+        text: json.text,
+        answers: json.answers.map((a: any) => ({ text: a.text.toUpperCase(), points: a.points, revealed: false }))
+      };
+      return normalizeQuestionPoints(rawQuestion);
+  }
+  throw new Error("Invalid JSON structure received from AI");
 }
 
 export const fetchGameContent = async (): Promise<Question[]> => {
@@ -229,12 +222,12 @@ export const fetchGameContent = async (): Promise<Question[]> => {
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: "Generate 5 unique Family Feud questions about Filipino Christmas.",
+      contents: "Generate 5 unique Family Feud questions about Filipino Christmas in JSON format.",
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
         responseSchema: gameContentSchema,
-        temperature: 0.9,
+        temperature: 0.8,
       },
     });
 
@@ -250,7 +243,7 @@ export const fetchGameContent = async (): Promise<Question[]> => {
     throw new Error("Invalid AI response");
 
   } catch (error) {
-    console.warn("AI generation failed, loading fixed set.", error);
+    console.warn("AI generation failed during initialization, loading fixed set.", error);
     return fetchFixedGameSet();
   }
 };

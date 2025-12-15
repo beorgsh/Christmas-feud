@@ -1,35 +1,72 @@
+
 import React, { useState, useEffect } from 'react';
 import { GamePhase, GameState } from './types';
 import Registration from './components/Registration';
 import AdminDashboard from './components/AdminDashboard';
 import GameView from './components/GameView';
-import { fetchGameContent } from './services/geminiService';
+import { fetchGameContent, fetchSingleQuestion } from './services/geminiService';
 import { audioService } from './services/audioService';
+
+const STORAGE_KEY = 'paskong-pinoy-feud-state';
 
 const App: React.FC = () => {
   // Internal Tab State
   const [activeTab, setActiveTab] = useState<'admin' | 'board'>('admin');
   const [isMusicOn, setIsMusicOn] = useState(false);
+  const [showResumeOverlay, setShowResumeOverlay] = useState(false);
+  const [isReplacingQuestion, setIsReplacingQuestion] = useState(false);
 
-  const [state, setState] = useState<GameState>({
-    teams: {
-      1: { id: 1, name: '', score: 0 },
-      2: { id: 2, name: '', score: 0 }
-    },
-    currentRoundIndex: 0,
-    questions: [],
-    currentRoundScore: 0,
-    strikes: 0,
-    showStrikeOverlay: false,
-    phase: GamePhase.REGISTRATION
+  // Initialize state from LocalStorage if available
+  const [state, setState] = useState<GameState>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Failed to load saved game", e);
+    }
+    
+    return {
+      teams: {
+        1: { id: 1, name: '', score: 0 },
+        2: { id: 2, name: '', score: 0 }
+      },
+      currentRoundIndex: 0,
+      questions: [],
+      currentRoundScore: 0,
+      strikes: 0,
+      showStrikeOverlay: false,
+      phase: GamePhase.REGISTRATION
+    };
   });
 
+  // Effect: Save state to LocalStorage on change
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
+
+  // Effect: Check if we restored a live game
+  useEffect(() => {
+    if (state.phase === GamePhase.PLAYING || state.phase === GamePhase.GAME_OVER) {
+      setShowResumeOverlay(true);
+    }
+  }, []);
+
   // --- HOST ACTIONS ---
+  
+  const handleResume = () => {
+    // CRITICAL: Initialize audio on user click
+    audioService.initialize();
+    
+    setShowResumeOverlay(false);
+    setIsMusicOn(true);
+    audioService.toggleMusic(true);
+  };
   
   const handleStrike = () => {
     if (state.strikes >= 3) return;
     
-    // Play Strike Sound
     audioService.playBuzz();
 
     setState(prev => ({
@@ -48,16 +85,20 @@ const App: React.FC = () => {
   };
 
   const toggleMusic = (shouldPlay: boolean) => {
+    // Ensure audio is ready if toggle is clicked manually
+    if (shouldPlay) audioService.initialize();
+    
     setIsMusicOn(shouldPlay);
     audioService.toggleMusic(shouldPlay);
   };
 
   const startGame = async (t1: string, t2: string) => {
-    setState(prev => ({ ...prev, phase: GamePhase.LOADING }));
-    
-    // Start music automatically when game starts
+    // CRITICAL: Initialize audio on user click
+    audioService.initialize();
     toggleMusic(true);
 
+    setState(prev => ({ ...prev, phase: GamePhase.LOADING }));
+    
     const questions = await fetchGameContent();
     
     setState(prev => ({
@@ -74,6 +115,29 @@ const App: React.FC = () => {
     }));
   };
 
+  const handleReplaceQuestion = async () => {
+    setIsReplacingQuestion(true);
+    try {
+      const newQuestion = await fetchSingleQuestion();
+      setState(prev => {
+        // Create a copy of the questions array
+        const updatedQuestions = [...prev.questions];
+        // Replace the current index
+        updatedQuestions[prev.currentRoundIndex] = newQuestion;
+        
+        return {
+          ...prev,
+          questions: updatedQuestions,
+          currentRoundScore: 0, // Reset the pot for this round
+          strikes: 0 // Reset strikes
+        };
+      });
+    } catch (e) {
+      console.error("Failed to replace question", e);
+    }
+    setIsReplacingQuestion(false);
+  };
+
   const toggleAnswer = (answerIndex: number) => {
     const currentQuestion = state.questions[state.currentRoundIndex];
     if (!currentQuestion) return;
@@ -81,16 +145,13 @@ const App: React.FC = () => {
     const answer = currentQuestion.answers[answerIndex];
     if (!answer) return;
 
-    // Determine if we are revealing or hiding
     const isRevealing = !answer.revealed;
 
-    // Play Reveal Sound (Ding) only when revealing
     if (isRevealing) {
       audioService.playDing();
     }
 
     setState(prev => {
-      // Create a deep copy of the questions array
       const updatedQuestions = prev.questions.map((q, qIdx) => {
         if (qIdx !== prev.currentRoundIndex) return q;
         return {
@@ -101,9 +162,6 @@ const App: React.FC = () => {
         };
       });
 
-      // Calculate new score based on toggle direction
-      // If revealing: ADD points
-      // If hiding: SUBTRACT points
       const scoreChange = isRevealing ? answer.points : -answer.points;
       const newRoundScore = Math.max(0, prev.currentRoundScore + scoreChange);
 
@@ -137,6 +195,7 @@ const App: React.FC = () => {
   };
 
   const resetGame = () => {
+    localStorage.removeItem(STORAGE_KEY);
     setState({
       teams: {
         1: { id: 1, name: '', score: 0 },
@@ -149,11 +208,9 @@ const App: React.FC = () => {
       showStrikeOverlay: false,
       phase: GamePhase.REGISTRATION
     });
+    setIsMusicOn(false);
+    audioService.toggleMusic(false);
   };
-
-  // --------------------------------------------------------------------------
-  // Render Logic
-  // --------------------------------------------------------------------------
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -202,6 +259,8 @@ const App: React.FC = () => {
                 onReset={resetGame}
                 isMusicOn={isMusicOn}
                 onToggleMusic={() => toggleMusic(!isMusicOn)}
+                onReplaceQuestion={handleReplaceQuestion}
+                isReplacing={isReplacingQuestion}
              />
           )
         ) : (
@@ -209,6 +268,23 @@ const App: React.FC = () => {
           <GameView state={state} />
         )}
       </div>
+
+      {/* RESUME OVERLAY (Fixes Audio Autoplay on Reload) */}
+      {showResumeOverlay && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-800 border-4 border-yellow-500 rounded-xl p-8 max-w-md w-full text-center shadow-2xl">
+             <div className="text-6xl mb-4">⏸️</div>
+             <h2 className="text-3xl font-display text-white mb-2">Game Paused</h2>
+             <p className="text-gray-300 mb-8">Session restored. Click below to resume the game and enable audio.</p>
+             <button 
+               onClick={handleResume}
+               className="w-full py-4 bg-green-600 hover:bg-green-500 text-white font-black uppercase tracking-widest text-xl rounded shadow-lg transition-transform active:scale-95"
+             >
+               Resume Game
+             </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

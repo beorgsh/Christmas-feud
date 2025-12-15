@@ -37,11 +37,12 @@ const AnswerBoard: React.FC<Props> = ({ answers, onReveal }) => {
                {/* Texture Overlay */}
                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay"></div>
                
-               <span className="text-xl md:text-3xl font-bold uppercase text-white truncate flex-1 text-left drop-shadow-lg font-display tracking-wide relative z-10">
+               {/* UPDATED FONT: Removed font-display (Lobster) and added font-sans (Roboto Condensed), made larger */}
+               <span className="text-2xl md:text-4xl font-black uppercase text-white truncate flex-1 text-left drop-shadow-md font-sans tracking-tight relative z-10">
                  {answer?.text}
                </span>
                
-               <div className="relative z-10 bg-gradient-to-b from-yellow-300 to-yellow-500 text-red-900 px-4 py-2 min-w-[4rem] text-center font-black text-2xl border-2 border-white/40 shadow-lg rounded-lg transform rotate-1">
+               <div className="relative z-10 bg-gradient-to-b from-yellow-300 to-yellow-500 text-red-900 px-4 py-2 min-w-[4rem] text-center font-black text-2xl border-2 border-white/40 shadow-lg rounded-lg transform rotate-1 font-mono">
                  {answer?.points}
                </div>
             </div>

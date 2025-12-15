@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { GameState, Question } from '../types';
 import AnswerBoard from './AnswerBoard';
@@ -11,9 +12,22 @@ interface Props {
   onReset: () => void;
   isMusicOn: boolean;
   onToggleMusic: () => void;
+  onReplaceQuestion: () => void;
+  isReplacing: boolean;
 }
 
-const AdminDashboard: React.FC<Props> = ({ state, onReveal, onStrike, onClearStrikes, onAward, onReset, isMusicOn, onToggleMusic }) => {
+const AdminDashboard: React.FC<Props> = ({ 
+  state, 
+  onReveal, 
+  onStrike, 
+  onClearStrikes, 
+  onAward, 
+  onReset, 
+  isMusicOn, 
+  onToggleMusic,
+  onReplaceQuestion,
+  isReplacing
+}) => {
   const currentQuestion = state.questions[state.currentRoundIndex];
 
   return (
@@ -59,10 +73,17 @@ const AdminDashboard: React.FC<Props> = ({ state, onReveal, onStrike, onClearStr
                 <span className="bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest shadow-md">Live Board Preview</span>
             </div>
             
-            <div className="w-full transform scale-75 md:scale-90 lg:scale-100 origin-center z-0 mt-4">
-               {/* Note: Clicking on the live board also toggles answer (handled by App.tsx passed prop) */}
-               <AnswerBoard answers={currentQuestion?.answers || []} onReveal={onReveal} />
-            </div>
+            {isReplacing ? (
+              <div className="relative z-10 text-center">
+                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-400 mb-4"></div>
+                 <h2 className="text-white text-xl font-bold">Replacing Question...</h2>
+              </div>
+            ) : (
+              <div className="w-full transform scale-75 md:scale-90 lg:scale-100 origin-center z-0 mt-4">
+                 {/* Note: Clicking on the live board also toggles answer (handled by App.tsx passed prop) */}
+                 <AnswerBoard answers={currentQuestion?.answers || []} onReveal={onReveal} />
+              </div>
+            )}
         </section>
 
 
@@ -131,47 +152,76 @@ const AdminDashboard: React.FC<Props> = ({ state, onReveal, onStrike, onClearStr
 
 
         {/* 5. QUESTION (Reveal Controls) */}
-        <section className="bg-white p-6 rounded-lg shadow border-t-4 border-yellow-400">
-            <div className="mb-4">
-              <h2 className="text-gray-400 text-xs uppercase font-bold mb-1">Question & Answers (Click to Toggle)</h2>
-              <p className="text-xl font-bold text-slate-800 font-display">"{currentQuestion?.text}"</p>
+        <section className="bg-white p-6 rounded-lg shadow border-t-4 border-yellow-400 relative">
+            <div className="mb-4 flex justify-between items-start">
+              <div>
+                <h2 className="text-gray-400 text-xs uppercase font-bold mb-1">Question & Answers (Click to Toggle)</h2>
+                {isReplacing ? (
+                  <div className="h-8 bg-gray-200 animate-pulse rounded w-96"></div>
+                ) : (
+                  <p className="text-xl font-bold text-slate-800 font-display">"{currentQuestion?.text}"</p>
+                )}
+              </div>
+              
+              <button 
+                onClick={onReplaceQuestion}
+                disabled={isReplacing}
+                className="flex items-center gap-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs px-3 py-2 rounded font-bold uppercase tracking-wider shadow transition-colors"
+              >
+                {isReplacing ? (
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <span>🔄</span>
+                )}
+                Change Question
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3">
-              {currentQuestion?.answers.map((ans, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => onReveal(idx)}
-                  className={`
-                    flex justify-between items-center p-3 rounded border-2 transition-all relative overflow-hidden group
-                    ${ans.revealed 
-                      ? 'bg-blue-100 border-blue-400 cursor-pointer shadow-inner' // Revealed State (Changed to Blue)
-                      : 'bg-white border-gray-200 hover:border-blue-400 hover:bg-gray-50 cursor-pointer shadow-sm hover:shadow-md' // Hidden State
-                    }
-                  `}
-                >
-                  <div className="flex items-center gap-3 relative z-10">
-                    <div className={`
-                      w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm transition-colors
-                      ${ans.revealed ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600 group-hover:bg-blue-500 group-hover:text-white'}
-                    `}>
-                      {idx + 1}
+              {isReplacing ? (
+                // Loading Skeletons
+                Array(8).fill(null).map((_, i) => (
+                  <div key={i} className="h-14 bg-gray-100 animate-pulse rounded border border-gray-200"></div>
+                ))
+              ) : (
+                currentQuestion?.answers.map((ans, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => onReveal(idx)}
+                    className={`
+                      flex justify-between items-center p-3 rounded border-2 transition-all relative overflow-hidden group
+                      ${ans.revealed 
+                        ? 'bg-blue-100 border-blue-400 cursor-pointer shadow-inner' // Revealed State (Changed to Blue)
+                        : 'bg-white border-gray-200 hover:border-blue-400 hover:bg-gray-50 cursor-pointer shadow-sm hover:shadow-md' // Hidden State
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-3 relative z-10">
+                      <div className={`
+                        w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm transition-colors
+                        ${ans.revealed ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600 group-hover:bg-blue-500 group-hover:text-white'}
+                      `}>
+                        {idx + 1}
+                      </div>
+                      <span className={`text-lg font-bold ${ans.revealed ? 'text-blue-900' : 'text-slate-500'}`}>
+                        {ans.text}
+                      </span>
                     </div>
-                    <span className={`text-lg font-bold ${ans.revealed ? 'text-blue-900' : 'text-slate-500'}`}>
-                      {ans.text}
+                    <span className={`font-mono font-bold text-xl relative z-10 ${ans.revealed ? 'text-blue-700' : 'text-gray-400'}`}>
+                      {ans.points}
                     </span>
-                  </div>
-                  <span className={`font-mono font-bold text-xl relative z-10 ${ans.revealed ? 'text-blue-700' : 'text-gray-400'}`}>
-                    {ans.points}
-                  </span>
-                  
-                  {/* Status Indicator / Toggle Hint */}
-                  <div className={`absolute right-2 top-2 text-[10px] uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity ${ans.revealed ? 'text-red-400' : 'text-blue-400'}`}>
-                    {ans.revealed ? 'Hide' : 'Reveal'}
-                  </div>
+                    
+                    {/* Status Indicator / Toggle Hint */}
+                    <div className={`absolute right-2 top-2 text-[10px] uppercase font-bold opacity-0 group-hover:opacity-100 transition-opacity ${ans.revealed ? 'text-red-400' : 'text-blue-400'}`}>
+                      {ans.revealed ? 'Hide' : 'Reveal'}
+                    </div>
 
-                </button>
-              ))}
+                  </button>
+                ))
+              )}
             </div>
         </section>
 
